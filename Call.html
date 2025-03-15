@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call Break Score Table</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid black;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    .score-input, .name-input {
+      width: 100px;
+      text-align: center;
+    }
+    .total-row td {
+      font-weight: bold;
+      background-color: #f4f4f4;
+    }
+    .valid-row {
+      background-color: lightgreen !important;
+    }
+    .invalid-row {
+      background-color: lightcoral !important;
+    }
+    .name-container {
+      display: none;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Call Break Game Score Table 
+   <button onclick="toggleNameInputs()">Edit Player Names</button>
+   <button onclick="confirmResetGame()">Reset Game</button>
+  </h2>
+
+ 
+
+  <div id="nameContainer" class="name-container">
+    <label>Player Names:</label>
+    <input type="text" class="name-input" id="playerName1" value="Player 1">
+    <input type="text" class="name-input" id="playerName2" value="Player 2">
+    <input type="text" class="name-input" id="playerName3" value="Player 3">
+    <input type="text" class="name-input" id="playerName4" value="Player 4">
+    <button onclick="updatePlayerNames()">Update Names</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Round</th>
+        <th id="headerPlayer1">Player 1</th>
+        <th id="headerPlayer2">Player 2</th>
+        <th id="headerPlayer3">Player 3</th>
+        <th id="headerPlayer4">Player 4</th>
+        <th>Row Total</th>
+      </tr>
+    </thead>
+    <tbody id="scoreTableBody"></tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td>Total Scores</td>
+        <td id="playerTotal1">0</td>
+        <td id="playerTotal2">0</td>
+        <td id="playerTotal3">0</td>
+        <td id="playerTotal4">0</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <br>
+  <button onclick="addRound()">Add Round</button>
+  
+
+  <script>
+    let totalScores = [0, 0, 0, 0];
+
+    function toggleNameInputs() {
+      let nameContainer = document.getElementById("nameContainer");
+      nameContainer.style.display = nameContainer.style.display === "none" ? "block" : "none";
+    }
+
+    function updatePlayerNames() {
+      let playerNames = [];
+      for (let i = 1; i <= 4; i++) {
+        let name = document.getElementById("playerName" + i).value;
+        document.getElementById("headerPlayer" + i).textContent = name;
+        playerNames.push(name);
+      }
+      localStorage.setItem("playerNames", JSON.stringify(playerNames));
+      document.getElementById("nameContainer").style.display = "none"; 
+    }
+
+    function addRound() {
+      let tableBody = document.getElementById("scoreTableBody");
+      let roundNumber = tableBody.children.length + 1;
+      let row = document.createElement("tr");
+
+      let roundCell = document.createElement("td");
+      roundCell.textContent = roundNumber;
+      row.appendChild(roundCell);
+
+      for (let i = 0; i < 4; i++) {
+        let cell = document.createElement("td");
+        let input = document.createElement("input");
+        input.type = "number";
+        input.classList.add("score-input");
+
+        input.addEventListener("input", function () {
+          updateScores();
+          saveGameData();
+        });
+
+        cell.appendChild(input);
+        row.appendChild(cell);
+      }
+
+      let checkCell = document.createElement("td");
+      checkCell.classList.add("check-cell");
+      row.appendChild(checkCell);
+
+      tableBody.appendChild(row);
+      saveGameData();
+    }
+
+    function updateScores() {
+      let tableBody = document.getElementById("scoreTableBody");
+      let tempScores = [0, 0, 0, 0];
+
+      let rows = tableBody.getElementsByTagName("tr");
+
+      for (let i = 0; i < rows.length; i++) {
+        let inputs = rows[i].getElementsByTagName("input");
+        let rowTotal = 0;
+
+        for (let j = 0; j < 4; j++) {
+          let score = parseInt(inputs[j].value);
+          if (!isNaN(score)) {
+            tempScores[j] += score;
+            if (score >= 0) {
+              rowTotal += score;
+            }
+          }
+        }
+
+        let checkCell = rows[i].getElementsByClassName("check-cell")[0];
+        checkCell.textContent = rowTotal;
+
+        if (rowTotal === 25) {
+          rows[i].classList.add("valid-row");
+          rows[i].classList.remove("invalid-row");
+        } else {
+          rows[i].classList.add("invalid-row");
+          rows[i].classList.remove("valid-row");
+        }
+      }
+
+      totalScores = tempScores;
+      displayTotalScores();
+    }
+
+    function displayTotalScores() {
+      for (let i = 0; i < 4; i++) {
+        document.getElementById("playerTotal" + (i + 1)).textContent = totalScores[i];
+      }
+    }
+
+    function saveGameData() {
+      let tableData = [];
+      document.querySelectorAll("#scoreTableBody tr").forEach(row => {
+        let rowData = [];
+        row.querySelectorAll("input").forEach(input => {
+          rowData.push(input.value);
+        });
+        tableData.push(rowData);
+      });
+
+      localStorage.setItem("gameData", JSON.stringify(tableData));
+      localStorage.setItem("totalScores", JSON.stringify(totalScores));
+    }
+
+    function loadGameData() {
+      let savedNames = JSON.parse(localStorage.getItem("playerNames"));
+      if (savedNames) {
+        for (let i = 1; i <= 4; i++) {
+          document.getElementById("playerName" + i).value = savedNames[i - 1];
+          document.getElementById("headerPlayer" + i).textContent = savedNames[i - 1];
+        }
+      }
+
+      let savedData = JSON.parse(localStorage.getItem("gameData"));
+      if (savedData) {
+        savedData.forEach(rowData => {
+          addRound();
+          let lastRowInputs = document.querySelectorAll("#scoreTableBody tr:last-child input");
+          rowData.forEach((value, index) => {
+            lastRowInputs[index].value = value;
+          });
+        });
+        updateScores();
+      }
+    }
+
+    function confirmResetGame() {
+      let confirmation = confirm("Are you sure you want to reset the game?");
+      if (confirmation) {
+        resetGame();
+      }
+    }
+
+    function resetGame() {
+      localStorage.clear();
+      location.reload();
+    }
+
+    window.onload = loadGameData;
+  </script>
+
+</body>
+</html>
